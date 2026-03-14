@@ -12,7 +12,7 @@ const placeOrder = async (req, res) => {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    // Verify user exists
+
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -51,7 +51,6 @@ const placeOrder = async (req, res) => {
 
     await newOrder.save();
 
-    // Clear cart
     await Cart.findOneAndUpdate(
       { userId: req.user.id },
       { $set: { items: [] } }
@@ -86,11 +85,9 @@ const cancelOrder = async (req, res) => {
   try {
     const { userId, orderId } = req.params;
 
-    // Check permission
     if (req.user.id !== userId)
       return res.status(403).json({ message: "Forbidden" })
 
-    // Find order by orderId
     const order = await Order.findOne({ orderId: orderId, userId: userId });
 
     if (!order) return res.status(404).json({ message: "Order not found" });
@@ -119,13 +116,13 @@ const getAllOrders = async (req, res) => {
           as: "userDetails"
         }
       },
-      { $unwind: "$userDetails" },
+      { $unwind: { path: "$userDetails", preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          _id: "$orderId", // Maintain API compatibility where _id was equivalent to orderId in response
+          _id: "$orderId",
           orderId: 1,
           email: "$userDetails.email",
-          name: "$userDetails.name",
+          name: { $ifNull: ["$userName", "$userDetails.name", "$email"] },
           items: 1,
           totalAmount: 1,
           status: 1,
@@ -162,7 +159,7 @@ const getAllOrders = async (req, res) => {
     const data = result[0].data;
     const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
 
-    // Populate products in the items
+
     const finalData = await Order.populate(data, { path: "items.product", model: "Product" });
 
     res.json({
@@ -181,25 +178,43 @@ const getAllOrders = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status: newStatus } = req.body;
 
-    // id parameter here is 'orderId' string based on routes typically
-    const order = await Order.findOneAndUpdate(
-      { orderId: id },
-      { status: status },
-      { new: true }
-    );
-
+    const order = await Order.findOne({ orderId: id });
     if (!order) return res.status(404).json({ message: "Order not found" });
-    res.json({ message: "Order status updated" });
+
+    const oldStatus = order.status;
+
+
+    if (newStatus === "Cancelled" && oldStatus !== "Cancelled") {
+
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: item.quantity },
+        });
+      }
+    } else if (oldStatus === "Cancelled" && newStatus !== "Cancelled") {
+
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: -item.quantity },
+        });
+      }
+    }
+
+    order.status = newStatus;
+    await order.save();
+
+    res.json({ message: "Order status updated", order });
   } catch (err) {
+    console.error("Status update error:", err);
     res.status(500).json({ message: "Failed to update order status" });
   }
 };
 
 const deleteOrder = async (req, res) => {
   try {
-    const { id } = req.params; // orderId
+    const { id } = req.params;
 
     const order = await Order.findOne({ orderId: id });
     if (!order) return res.status(404).json({ message: "Order not found" });
@@ -223,9 +238,9 @@ const deleteOrder = async (req, res) => {
 
 const getOrderById = async (req, res) => {
   try {
-    const { id } = req.params; // orderId
+    const { id } = req.params;
 
-    // We need email from user, so populate userId
+
     const order = await Order.findOne({ orderId: id }).populate("items.product").populate("userId");
 
     if (!order) return res.status(404).json({ message: "Order not found" });
@@ -233,7 +248,8 @@ const getOrderById = async (req, res) => {
     res.json({
       id: order.orderId,
       orderId: order.orderId,
-      email: order.userId ? order.userId.email : "Unknown", // Handle deleted users?
+      email: order.userId ? order.userId.email : "Unknown",
+      userName: order.userName || (order.userId ? order.userId.name : "Unknown"),
       items: order.items,
       totalAmount: order.totalAmount,
       status: order.status,

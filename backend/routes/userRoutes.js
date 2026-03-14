@@ -7,13 +7,13 @@ const { registerSchema, loginSchema } = require("../validation/userValidation");
 
 const router = express.Router();
 
-router.post("/register", validateRequest(registerSchema), userController.register);
-router.post("/login", validateRequest(loginSchema), userController.login);
+router.post("/register", validateRequest(registerSchema), userController.register)
+router.post("/login", validateRequest(loginSchema), userController.login)
 router.post("/refresh", userController.refresh);
-router.post("/logout", userController.logout);
-router.get("/profile", authMiddleware, userController.getProfile);
+router.post("/logout", userController.logout)
+router.get("/profile", authMiddleware, userController.getProfile)
 
-// Admin Routes
+
 router.get("/", authMiddleware, adminMiddleware, userController.getAllUsers);
 router.patch("/:userId", authMiddleware, adminMiddleware, userController.updateUser);
 router.delete("/:userId", authMiddleware, adminMiddleware, userController.deleteUser);

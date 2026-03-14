@@ -20,9 +20,7 @@ const orderSchema = new mongoose.Schema(
             ref: "User",
             required: true
         },
-        userName: {
-            type: String
-        },
+        userName: String,
         orderId: {
             type: String,
             unique: true,

@@ -13,7 +13,7 @@ const generateRefreshToken = (user) => {
         { id: user._id },
         process.env.REFRESH_JWT_SECRET,
         { expiresIn: "7d" }
-    );
-};
+    )
+}
 
-module.exports = { generateAccessToken, generateRefreshToken };
+module.exports = { generateAccessToken, generateRefreshToken }

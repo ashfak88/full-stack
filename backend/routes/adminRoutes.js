@@ -4,7 +4,7 @@ const productController = require("../controllers/productController");
 const userController = require("../controllers/userController");
 const orderController = require("../controllers/orderController");
 const { authMiddleware } = require("../middlware/authMiddleware");
-const { adminMiddleware } = require("../middlware/adminMiddleware");
+const { adminMiddleware = require("../middlware/adminMiddleware") } = require("../middlware/adminMiddleware"); // Wait, let's be careful with destructured require
 
 const router = express.Router();
 
