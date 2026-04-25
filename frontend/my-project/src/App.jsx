@@ -6,7 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import Navbar from "./Components/Navbar";
+import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Products from "./pages/Products";
 import Wishlist from "./pages/Wishlist";
@@ -24,7 +24,7 @@ import { ToastContainer } from "react-toastify";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import Shipping from "./pages/Shipping";
-import ProtectedRoute from "./Components/Protectedroute";
+import ProtectedRoute from "./components/Protectedroute";
 
 
 import ProtectedAdminRoute from "./pages/Admin/ProtectedAdminRoute";
@@ -40,8 +40,8 @@ import AdminAddProducts from "./pages/Admin/AdminAddProducts";
 
 import { AdminProvider } from "./pages/Admin/context/AdminContext";
 
-import ErrorBoundary from "./Components/ErrorBoundary";
-import UserRoute from "./Components/UserRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
+import UserRoute from "./components/UserRoute";
 
 
 function AppContent() {
