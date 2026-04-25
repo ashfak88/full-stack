@@ -7,6 +7,7 @@ import { SlArrowRight, SlArrowLeft } from "react-icons/sl";
 
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { API_BASE_URL } from "../api/api";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -49,7 +50,7 @@ const Products = () => {
       });
 
       const response = await fetch(
-        `http://localhost:5000/api/products?${queryParams.toString()}`,
+        `${API_BASE_URL}/products?${queryParams.toString()}`,
       );
       const data = await response.json();
 
@@ -126,7 +127,7 @@ const Products = () => {
 
   const [categories, setCategories] = useState(["all"]);
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
+    fetch(`${API_BASE_URL}/products`)
       .then((res) => res.json())
       .then((data) => {
         const allProducts = Array.isArray(data) ? data : data.products || [];

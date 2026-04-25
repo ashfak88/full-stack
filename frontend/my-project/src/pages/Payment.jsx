@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
+import { API_BASE_URL } from "../api/api";
 
 const Payment = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -97,7 +98,7 @@ const Payment = () => {
     setIsProcessing(true);
     try {
       const response = await fetch(
-        "http://localhost:5000/api/orders/place",
+        `${API_BASE_URL}/orders/place`,
         {
           method: "POST",
           headers: {

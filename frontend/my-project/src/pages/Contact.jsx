@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Footer from "../components/Footer";
 import emailjs from "@emailjs/browser";
+import { toast } from "react-toastify";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -31,12 +32,12 @@ const Contact = () => {
         setSubmitted(true);
         setFormData({ name: "", email: "", message: "" });
         setLoading(false);
-        alert("✅ Your message has been sent successfully!");
+        toast.success("Your message has been sent successfully!");
       })
       .catch((err) => {
         console.error("Error sending email:", err);
         setLoading(false);
-        alert("Failed to send message. Please try again later.");
+        toast.error("Failed to send message. Please try again later.");
       });
   };
 
