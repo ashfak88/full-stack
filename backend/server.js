@@ -8,7 +8,12 @@ connectDB();
 
 const app = express();
 
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://hotwheeels.vercel.app"
+];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
 app.use("/api/users", require("./routes/userRoutes"));
