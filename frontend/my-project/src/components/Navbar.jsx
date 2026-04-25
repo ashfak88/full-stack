@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 
 const HeartIcon = ({ count, isActive }) => (
   <div className={`relative ${isActive ? "text-orange-700" : ""}`}>
@@ -183,13 +184,25 @@ const Navbar = () => {
     setUser(loggedInUser);
   }, []);
 
-  const handleLogout = () => {
-    clearCart(true);
-    if (clearWishlist) clearWishlist();
-    localStorage.removeItem("loggedInUser");
-    setUser(null);
-    toast.success("Logged out successfully!");
-    navigate("/login");
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: "Logout?",
+      text: "Are you sure you want to logout?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#e63946",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, Logout!",
+    });
+
+    if (result.isConfirmed) {
+      clearCart(true);
+      if (clearWishlist) clearWishlist();
+      localStorage.removeItem("loggedInUser");
+      setUser(null);
+      toast.success("Logged out successfully!");
+      navigate("/login");
+    }
   };
 
   return (
@@ -396,10 +409,9 @@ const Navbar = () => {
                   Hi, <span className="font-semibold">{user.name}</span>
                 </p>
                 <button
-                  onClick={() => {
-                    handleLogout();
+                  onClick={async () => {
+                    await handleLogout();
                     setIsMenuOpen(false);
-                    window.location.reload();
                   }}
                   className="w-full text-left px-3 py-2 text-gray-700 hover:bg-red-500 hover:text-white rounded-md transition duration-300"
                 >

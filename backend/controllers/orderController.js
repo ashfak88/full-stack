@@ -3,6 +3,8 @@ const Product = require("../models/productSchema");
 const Order = require("../models/orderSchema");
 const Cart = require("../models/cartSchema");
 const { v4: uuidv4 } = require("uuid");
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
 
 const placeOrder = async (req, res) => {
   try {
@@ -263,6 +265,114 @@ const getOrderById = async (req, res) => {
   }
 };
 
+const getRazorpayKey = (req, res) => {
+  res.status(200).json({ key: process.env.RAZORPAY_KEY_ID });
+};
+
+const createRazorpayOrder = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
+    if (!amount) {
+      return res.status(400).json({ message: "Amount is required" });
+    }
+
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
+    const options = {
+      amount: Math.round(amount * 100), // amount in smallest currency unit (paise for INR)
+      currency: "INR",
+      receipt: `rcpt_${uuidv4().slice(0, 20)}`
+    };
+
+    const order = await instance.orders.create(options);
+
+    if (!order) return res.status(500).json({ message: "Some error occurred" });
+
+    res.json(order);
+  } catch (error) {
+    console.error("Razorpay Create Order Error:", error);
+    res.status(500).json({ message: "Failed to create Razorpay order", details: error.message });
+  }
+};
+
+const verifyRazorpayPayment = async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      items,
+      address,
+      phone
+    } = req.body;
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    const isAuthentic = expectedSignature === razorpay_signature;
+
+    if (isAuthentic) {
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const validItems = items.filter((i) => i.product && i.price && i.quantity);
+
+      if (validItems.length === 0) {
+        return res.status(400).json({ message: "No valid items in order" });
+      }
+
+      const totalAmount = validItems.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0,
+      )
+
+      for (const item of validItems) {
+        try {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: -item.quantity },
+          })
+        } catch (stockErr) {
+          console.error("Stock update failed for:", item.product, stockErr);
+        }
+      }
+
+      const newOrder = new Order({
+        userId: req.user.id,
+        userName: user.name,
+        orderId: uuidv4(),
+        items: validItems,
+        totalAmount,
+        address,
+        phone,
+        paymentMethod: "razorpay",
+        status: "Pending", 
+      });
+
+      await newOrder.save();
+
+      await Cart.findOneAndUpdate(
+        { userId: req.user.id },
+        { $set: { items: [] } }
+      );
+
+      res.status(200).json({ message: "Payment verified successfully and order placed" });
+    } else {
+      res.status(400).json({ message: "Invalid Signature" });
+    }
+  } catch (error) {
+    console.error("Payment Verification Error:", error);
+    res.status(500).json({ message: "Internal server error during verification" });
+  }
+};
+
 module.exports = {
   placeOrder,
   getUserOrders,
@@ -270,5 +380,8 @@ module.exports = {
   getAllOrders,
   updateOrderStatus,
   deleteOrder,
-  getOrderById
+  getOrderById,
+  getRazorpayKey,
+  createRazorpayOrder,
+  verifyRazorpayPayment
 };

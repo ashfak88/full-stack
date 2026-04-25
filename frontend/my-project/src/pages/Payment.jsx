@@ -4,6 +4,16 @@ import { toast } from "react-toastify";
 import { useCart } from "../context/CartContext";
 import { API_BASE_URL } from "../api/api";
 
+const loadScript = (src) => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 const Payment = () => {
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -96,6 +106,104 @@ const Payment = () => {
     }
 
     setIsProcessing(true);
+
+    if (paymentMethod === "razorpay") {
+      try {
+        const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+
+        if (!res) {
+          toast.error("Razorpay SDK failed to load. Are you online?");
+          setIsProcessing(false);
+          return;
+        }
+
+        const keyResponse = await fetch(`${API_BASE_URL}/orders/razorpay/key`, {
+          headers: { Authorization: `Bearer ${freshUser.accessToken}` },
+        });
+        const { key } = await keyResponse.json();
+
+        const orderResponse = await fetch(`${API_BASE_URL}/orders/razorpay/create-order`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${freshUser.accessToken}`,
+          },
+          body: JSON.stringify({ amount: totalPrice }),
+        });
+
+        const orderData = await orderResponse.json();
+        if (!orderResponse.ok) throw new Error(orderData.message || "Failed to create Razorpay order");
+
+        const options = {
+          key: key, 
+          amount: orderData.amount,
+          currency: "INR",
+          name: "Hot Wheels",
+          description: "Order Payment",
+          order_id: orderData.id,
+          handler: async function (response) {
+            try {
+              const verifyResponse = await fetch(`${API_BASE_URL}/orders/razorpay/verify`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${freshUser.accessToken}`,
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  address,
+                  phone,
+                  items: cartItems.map((item) => ({
+                    product: item._id,
+                    quantity: item.qty || 1,
+                    price: item.price
+                  }))
+                }),
+              });
+
+              const verifyData = await verifyResponse.json();
+              if (!verifyResponse.ok) throw new Error(verifyData.message || "Payment verification failed");
+
+              setIsOrderPlaced(true);
+              toast.success("🎉 Payment Successful! Order placed successfully.");
+
+              clearCart();
+              localStorage.removeItem("selectedCar");
+
+              setTimeout(() => navigate("/shipping"), 1500);
+            } catch (error) {
+              console.error("Verification failed:", error);
+              toast.error(error.message || "Payment verification failed.");
+            }
+          },
+          prefill: {
+            name: freshUser.name || "Customer",
+            email: freshUser.email || "",
+            contact: phone,
+          },
+          theme: {
+            color: "#c2410c",
+          },
+        };
+
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.open();
+
+        paymentObject.on('payment.failed', function (response){
+           toast.error(`Payment Failed: ${response.error.description}`);
+        });
+
+      } catch (error) {
+        console.error("Razorpay processing failed:", error);
+        toast.error(error.message || "Failed to process Razorpay payment.");
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     try {
       const response = await fetch(
         `${API_BASE_URL}/orders/place`,
@@ -216,6 +324,16 @@ const Payment = () => {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                 />
                 Cash on Delivery
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  value="razorpay"
+                  checked={paymentMethod === "razorpay"}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                />
+                Razorpay
               </label>
             </div>
           </div>
