@@ -222,6 +222,12 @@ const Shipping = () => {
                   <p>
                     <strong>Shipping Address:</strong> {order.address}
                   </p>
+                  <p>
+                    <strong>Payment Method:</strong>{" "}
+                    <span className="uppercase text-orange-600 font-bold">
+                      {order.paymentMethod || "COD"}
+                    </span>
+                  </p>
                 </div>
 
                 {}

@@ -92,6 +92,9 @@ const UserOrders = () => {
                                         >
                                             {order.status}
                                         </span>
+                                        <p className="text-xs text-gray-400 uppercase font-bold border-l pl-2 border-gray-200">
+                                            {order.paymentMethod || "COD"}
+                                        </p>
                                     </div>
                                 </div>
 

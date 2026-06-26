@@ -130,6 +130,7 @@ const getAllOrders = async (req, res) => {
           status: 1,
           address: 1,
           phone: 1,
+          paymentMethod: 1,
           createdAt: 1,
         }
       }
@@ -257,6 +258,7 @@ const getOrderById = async (req, res) => {
       status: order.status,
       address: order.address,
       phone: order.phone,
+      paymentMethod: order.paymentMethod,
       createdAt: order.createdAt
     });
   } catch (err) {

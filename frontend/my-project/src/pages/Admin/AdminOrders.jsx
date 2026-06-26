@@ -203,6 +203,12 @@ export default function AdminOrders() {
               <p className="text-slate-300 text-sm mt-2 border-t border-gray-700 pt-2">
                 <span className="font-semibold text-slate-200">Address:</span> {selectedOrder.address || "N/A"}
               </p>
+              <p className="text-slate-300 text-sm mt-1">
+                <span className="font-semibold text-slate-200">Payment:</span>{" "}
+                <span className="uppercase text-orange-400 font-bold">
+                  {selectedOrder.paymentMethod || "COD"}
+                </span>
+              </p>
             </div>
 
             {selectedOrder.items.map((item, index) => (
