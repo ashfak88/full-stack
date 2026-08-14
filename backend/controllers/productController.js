@@ -22,11 +22,15 @@ const getAllProducts = async (req, res) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const totalProducts = await Product.countDocuments(query);
-    const products = await Product.find(query)
-      .sort({ createdAt: 1, _id: 1 })
-      .skip(skip)
-      .limit(parseInt(limit));
+
+    // Optimize by running count and find queries concurrently
+    const [totalProducts, products] = await Promise.all([
+      Product.countDocuments(query),
+      Product.find(query)
+        .sort({ createdAt: 1, _id: 1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+    ]);
 
     res.json({
       products,
