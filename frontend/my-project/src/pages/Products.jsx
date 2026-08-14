@@ -3,6 +3,7 @@ import { FaHeart } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Footer from "../components/Footer";
+import SaleBadge from "../components/SaleBadge";
 import { SlArrowRight, SlArrowLeft } from "react-icons/sl";
 
 import { useCart } from "../context/CartContext";
@@ -19,6 +20,7 @@ const Products = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [saleProductIds, setSaleProductIds] = useState([]);
   const productsRef = useRef(null);
 
   const navigate = useNavigate();
@@ -71,6 +73,20 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
   }, [selectedCategory, priceRange, debouncedSearch, currentPage]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const numToPick = Math.min(2, Math.max(1, Math.floor(products.length / 3)));
+      const ids = [];
+      const tempProducts = [...products];
+      while(ids.length < numToPick && tempProducts.length > 0) {
+        const randIndex = Math.floor(Math.random() * tempProducts.length);
+        ids.push(tempProducts[randIndex]._id);
+        tempProducts.splice(randIndex, 1);
+      }
+      setSaleProductIds(ids);
+    }
+  }, [products]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -230,9 +246,10 @@ const Products = () => {
               return (
                 <div
                   key={p._id}
-                  className="bg-white rounded-2xl shadow-md hover:shadow-lg transition overflow-hidden w-80 mx-auto flex flex-col"
+                  className="bg-white rounded-2xl shadow-md hover:shadow-lg transition relative w-80 mx-auto flex flex-col"
                 >
-                  <div className="w-full h-80 overflow-hidden relative group">
+                  {saleProductIds.includes(p._id) && <SaleBadge />}
+                  <div className="w-full h-80 overflow-hidden rounded-t-2xl relative group">
                     <img
                       src={p.image}
                       alt={p.name}
